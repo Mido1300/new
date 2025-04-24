@@ -5,9 +5,6 @@ const nextConfig = {
     domains: ['i.imgur.com'],
     unoptimized: true,
   },
-  experimental: {
-    serverActions: true,
-  },
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.

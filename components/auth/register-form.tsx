@@ -15,6 +15,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2 } from "lucide-react"
 
+type UserRole = "Manager" | "Admin" | "Staff" | "Customer"
+
 const registerSchema = z
   .object({
     name: z.string().min(1, { message: "Name is required" }),
@@ -24,7 +26,9 @@ const registerSchema = z
     passwordConfirm: z.string().min(8, { message: "Password must be at least 8 characters" }),
     phone: z.string().min(1, { message: "Phone number is required" }),
     country: z.string().min(1, { message: "Country is required" }),
-    role: z.string().min(1, { message: "Role is required" }),
+    role: z.enum(["Manager", "Admin", "Staff", "Customer"] as const, {
+      required_error: "Role is required",
+    }),
   })
   .refine((data) => data.email === data.emailConfirm, {
     message: "Emails do not match",
@@ -60,7 +64,7 @@ export function RegisterForm() {
       passwordConfirm: "",
       phone: "",
       country: "",
-      role: "",
+      role: "Customer" as UserRole,
     },
   })
 
@@ -221,7 +225,7 @@ export function RegisterForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select onValueChange={(value) => setValue("role", value)}>
+                <Select defaultValue="Customer" onValueChange={(value: UserRole) => setValue("role", value)}>
                   <SelectTrigger id="role" aria-invalid={errors.role ? "true" : "false"}>
                     <SelectValue placeholder="Select Role" />
                   </SelectTrigger>

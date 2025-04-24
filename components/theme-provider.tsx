@@ -13,6 +13,7 @@ export function ThemeProvider({
   defaultTheme?: string
   enableSystem?: boolean
   storageKey?: string
+  attribute?: string
 }) {
   const [mounted, setMounted] = useState(false)
 

@@ -38,7 +38,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="light" enableSystem={true} attribute="class">
+        <ThemeProvider defaultTheme="light" enableSystem>
           <AuthProvider>
             <KeyboardShortcutsProvider>
               {children}
