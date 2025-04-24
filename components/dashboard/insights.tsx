@@ -5,6 +5,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowUp, Clock, Calendar, AlertTriangle, CheckCircle2, Zap, Award } from "lucide-react"
 import { formatTime } from "@/lib/utils"
 
+interface Task {
+  id: string
+  title: string
+  description?: string
+  category?: string
+  completed: boolean
+  status: 'todo' | 'in_progress' | 'completed'
+  dueDate?: string
+  createdAt: string
+  completedAt?: string
+}
+
+interface CategoryInsights {
+  total: number
+  completed: number
+  inProgress: number
+  overdue: number
+  completionRate: number
+  averageTime: number
+  totalTime: number
+}
+
 export function Insights() {
   const { tasks } = useAppStore()
 
@@ -44,24 +66,49 @@ export function Insights() {
   const totalTimeSpent = tasks.reduce((sum, task) => sum + (task.timer || 0), 0)
 
   // Calculate most productive category
-  const categoryCounts = tasks.reduce((acc: Record<string, { total: number; completed: number }>, task) => {
+  const insights = tasks.reduce((acc: Record<string, CategoryInsights>, task) => {
     if (!task.category) return acc
-
+    
     if (!acc[task.category]) {
-      acc[task.category] = { total: 0, completed: 0 }
+      acc[task.category] = {
+        total: 0,
+        completed: 0,
+        inProgress: 0,
+        overdue: 0,
+        completionRate: 0,
+        averageTime: 0,
+        totalTime: 0
+      }
     }
-
-    acc[task.category].total++
+    
+    const category = acc[task.category]
+    if (!category) return acc
+    
+    category.total++
+    
     if (task.completed) {
-      acc[task.category].completed++
+      category.completed++
+      if (task.created) {
+        const completionTime = new Date().getTime() - new Date(task.created).getTime()
+        category.totalTime += completionTime
+        category.averageTime = category.totalTime / category.completed
+      }
+    } else if (!task.completed) {
+      category.inProgress++
     }
-
+    
+    if (task.dueDate && new Date(task.dueDate) < new Date() && !task.completed) {
+      category.overdue++
+    }
+    
+    category.completionRate = (category.completed / category.total) * 100
+    
     return acc
   }, {})
 
   let mostProductiveCategory = { name: "None", rate: 0 }
 
-  Object.entries(categoryCounts).forEach(([category, counts]) => {
+  Object.entries(insights).forEach(([category, counts]) => {
     const completionRate = counts.total > 0 ? (counts.completed / counts.total) * 100 : 0
     if (completionRate > mostProductiveCategory.rate && counts.total >= 2) {
       mostProductiveCategory = { name: category, rate: completionRate }
@@ -72,6 +119,17 @@ export function Insights() {
   const highPriorityCompleted = tasks.filter((t) => t.priority === "High" && t.completed).length
   const highPriorityTotal = tasks.filter((t) => t.priority === "High").length
   const highPriorityRate = highPriorityTotal > 0 ? (highPriorityCompleted / highPriorityTotal) * 100 : 0
+
+  const recentTasks = tasks
+    .filter((t) => {
+      const taskDate = new Date(t.created)
+      const today = new Date()
+      const weekStart = new Date()
+      weekStart.setDate(today.getDate() - 7)
+      return taskDate >= weekStart
+    })
+    .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
+    .slice(0, 5)
 
   return (
     <Card className="mb-8 animate-fade-in">
