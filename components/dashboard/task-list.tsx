@@ -100,8 +100,15 @@ export function TaskList() {
     }
 
     // Get the task IDs for source and destination
-    const sourceTaskId = sortedTasks[source.index].id
-    const destinationTaskId = sortedTasks[destination.index].id
+    const sourceTask = sortedTasks[source.index]
+    const destinationTask = sortedTasks[destination.index]
+    
+    if (!sourceTask || !destinationTask) {
+      return
+    }
+
+    const sourceTaskId = sourceTask.id
+    const destinationTaskId = destinationTask.id
 
     // Use the store's reorderTasks function
     useAppStore.getState().reorderTasks(sourceTaskId, destinationTaskId)

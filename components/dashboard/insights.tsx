@@ -6,15 +6,18 @@ import { ArrowUp, Clock, Calendar, AlertTriangle, CheckCircle2, Zap, Award } fro
 import { formatTime } from "@/lib/utils"
 
 interface Task {
-  id: string
+  id: number
   title: string
-  description?: string
-  category?: string
+  description: string
+  category: string
+  priority: "High" | "Medium" | "Low"
+  dueDate: string
   completed: boolean
-  status: 'todo' | 'in_progress' | 'completed'
-  dueDate?: string
-  createdAt: string
-  completedAt?: string
+  assignedTo: number
+  subtasks: string[]
+  notes?: string
+  created: string
+  timer: number
 }
 
 interface CategoryInsights {
@@ -93,7 +96,7 @@ export function Insights() {
         category.totalTime += completionTime
         category.averageTime = category.totalTime / category.completed
       }
-    } else if (!task.completed) {
+    } else {
       category.inProgress++
     }
     
