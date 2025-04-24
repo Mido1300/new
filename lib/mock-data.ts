@@ -3,6 +3,16 @@ import type { User, Task, Notification } from "@/types"
 export const mockUsers: User[] = [
   {
     id: 1,
+    name: "Admin User",
+    email: "admin@example.com",
+    password: "password123",
+    role: "Admin",
+    avatar: "/avatars/admin.png",
+    phone: "+1234567890",
+    country: "United States",
+  },
+  {
+    id: 2,
     name: "John Doe",
     email: "john.doe@example.com",
     password: "password123",
@@ -12,7 +22,7 @@ export const mockUsers: User[] = [
     avatar: "https://i.imgur.com/8Km9tLL.jpg",
   },
   {
-    id: 2,
+    id: 3,
     name: "Alice Smith",
     email: "alice@example.com",
     password: "password123",
@@ -22,7 +32,7 @@ export const mockUsers: User[] = [
     avatar: "https://i.imgur.com/3tVgsra.jpg",
   },
   {
-    id: 3,
+    id: 4,
     name: "Bob Johnson",
     email: "bob@example.com",
     password: "password123",
@@ -32,7 +42,7 @@ export const mockUsers: User[] = [
     avatar: "https://i.imgur.com/iNKlGdX.jpg",
   },
   {
-    id: 4,
+    id: 5,
     name: "Carol Williams",
     email: "carol@example.com",
     password: "password123",
@@ -42,7 +52,7 @@ export const mockUsers: User[] = [
     avatar: "https://i.imgur.com/Q9HLmAo.jpg",
   },
   {
-    id: 5,
+    id: 6,
     name: "David Brown",
     email: "david@example.com",
     password: "password123",
@@ -52,7 +62,7 @@ export const mockUsers: User[] = [
     avatar: "https://i.imgur.com/LFQPmcB.jpg",
   },
   {
-    id: 6,
+    id: 7,
     name: "Eve Taylor",
     email: "eve@example.com",
     password: "password123",

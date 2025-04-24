@@ -22,32 +22,44 @@ export function TaskTimer() {
 
   // Update timer display
   useEffect(() => {
-    if (!activeTimer.taskId) return
-
-    const updateDisplay = () => {
-      let elapsed = activeTimer.elapsed || 0
-
-      if (activeTimer.startTime) {
-        const now = new Date()
-        elapsed += now.getTime() - activeTimer.startTime.getTime()
-      }
-
-      setTimeDisplay(formatTime(elapsed))
+    // Clear any existing interval
+    if (timerInterval) {
+      clearInterval(timerInterval)
+      setTimerInterval(null)
     }
 
-    // Initial display update
-    updateDisplay()
+    // Set initial display
+    setTimeDisplay(formatTime(task?.timer || 0))
 
-    // Set up interval to update the timer display every second
-    const interval = setInterval(updateDisplay, 1000)
-    setTimerInterval(interval)
+    // If this task has an active timer, start updating the display
+    if (activeTimer.taskId && task) {
+      const updateTimer = () => {
+        let elapsed = task.timer || 0
 
+        if (activeTimer.startTime) {
+          const now = Date.now()
+          elapsed += activeTimer.elapsed + (now - activeTimer.startTime)
+        } else {
+          elapsed += activeTimer.elapsed
+        }
+
+        setTimeDisplay(formatTime(elapsed))
+      }
+
+      // Update immediately
+      updateTimer()
+
+      // Then set interval
+      setTimerInterval(setInterval(updateTimer, 1000))
+    }
+
+    // Cleanup function
     return () => {
-      if (interval) {
-        clearInterval(interval)
+      if (timerInterval) {
+        clearInterval(timerInterval)
       }
     }
-  }, [activeTimer])
+  }, [activeTimer, task?.timer, timerInterval])
 
   // Handle pause/resume
   const handlePauseResume = () => {

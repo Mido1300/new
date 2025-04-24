@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TaskItem } from "@/components/tasks/task-item"
 import { TaskSelectionActions } from "@/components/tasks/task-selection-actions"
 import { TaskTimer } from "@/components/tasks/task-timer"
-import { DragDropContext, Droppable, Draggable, type DropResult } from "react-beautiful-dnd"
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 import { useToast } from "@/components/ui/use-toast"
 import { GripVertical } from "lucide-react"
 
@@ -59,8 +59,8 @@ export function TaskList() {
       return true
     })
 
-  // Improve the sorting logic
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
+  // Only sort if there's a sort criteria
+  const sortedTasks = sort.by === "created" ? filteredTasks : [...filteredTasks].sort((a, b) => {
     let result = 0
 
     switch (sort.by) {
@@ -81,12 +81,6 @@ export function TaskList() {
       case "title":
         // Handle potential null/undefined values
         result = (a.title || "").localeCompare(b.title || "")
-        break
-      case "created":
-        // Handle potential null/undefined values
-        const createdA = a.created ? new Date(a.created).getTime() : 0
-        const createdB = b.created ? new Date(b.created).getTime() : 0
-        result = createdA - createdB
         break
       default:
         result = 0
@@ -134,7 +128,7 @@ export function TaskList() {
         <CardContent className="p-0">
           {sortedTasks.length > 0 ? (
             <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="tasks">
+              <Droppable droppableId="tasks" type="task">
                 {(provided) => (
                   <div {...provided.droppableProps} ref={provided.innerRef} className="p-2 space-y-2">
                     {sortedTasks.map((task, index) => (
@@ -143,6 +137,10 @@ export function TaskList() {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
+                            style={{
+                              ...provided.draggableProps.style,
+                              transform: snapshot.isDragging ? provided.draggableProps.style?.transform : "none",
+                            }}
                             className={`
                               rounded-md 
                               ${snapshot.isDragging ? "opacity-70 shadow-lg ring-2 ring-primary z-50" : ""}

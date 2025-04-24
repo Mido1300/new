@@ -82,7 +82,7 @@ export function EditTaskDialog({ open, onOpenChange, task }: EditTaskDialogProps
     // Update task
     editTask(task.id, {
       title: data.title,
-      description: data.description || "",
+      description: data.description,
       category: data.category,
       priority: data.priority as "High" | "Medium" | "Low",
       dueDate: data.dueDate,
@@ -91,16 +91,11 @@ export function EditTaskDialog({ open, onOpenChange, task }: EditTaskDialogProps
       notes: data.notes,
     })
 
-    // Add notification
-    addNotification({
-      title: "Task Updated",
-      message: `"${data.title}" has been updated`,
-    })
-
-    // Show toast
+    // Show toast notification
     toast({
       title: "Task Updated",
-      description: "Your task has been updated successfully.",
+      description: `"${data.title}" has been updated successfully`,
+      duration: 5000,
     })
 
     // Close dialog

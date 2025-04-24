@@ -91,16 +91,11 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     // Add task to store
     addTask(newTask)
 
-    // Add notification
-    addNotification({
-      title: "Task Added",
-      message: `"${data.title}" has been added`,
-    })
-
-    // Show toast
+    // Show toast notification
     toast({
-      title: "Task Added",
-      description: "Your new task has been created successfully.",
+      title: "Task Created",
+      description: `"${data.title}" has been created successfully`,
+      duration: 5000,
     })
 
     // Reset form

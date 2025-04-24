@@ -75,6 +75,31 @@ export function TaskSelectionActions() {
       title: "Tasks Deleted",
       description: `${taskCount} ${taskCount === 1 ? "task" : "tasks"} deleted successfully`,
       duration: 5000,
+      variant: "destructive",
+    })
+  }
+
+  const handleBulkDelete = () => {
+    deleteMultipleTasks(selectedTasks)
+    setDeleteDialogOpen(false)
+
+    // Show bulk delete notification
+    toast({
+      title: "Tasks Deleted",
+      description: `${selectedTasks.length} tasks have been deleted`,
+      duration: 5000,
+      variant: "destructive",
+    })
+  }
+
+  const handleBulkComplete = () => {
+    toggleMultipleTasksCompletion(selectedTasks)
+
+    // Show bulk completion notification
+    toast({
+      title: "Tasks Updated",
+      description: `${selectedTasks.length} tasks have been updated`,
+      duration: 5000,
     })
   }
 
@@ -128,13 +153,12 @@ export function TaskSelectionActions() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete {selectedTasks.length} selected{" "}
-              {selectedTasks.length === 1 ? "task" : "tasks"}.
+              This will permanently delete {selectedTasks.length} tasks. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={handleDeleteTasks}>
+            <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={handleBulkDelete}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

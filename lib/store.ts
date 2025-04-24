@@ -2,8 +2,15 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { Task, User, Notification, TaskFilters, TaskSort, UserStatus } from "@/types"
+import type { Task, User, Notification, TaskFilters, UserStatus } from "@/types"
 import { mockTasks, mockUsers, mockNotifications } from "./mock-data"
+
+type SortBy = "priority" | "dueDate" | "title" | "created"
+
+interface TaskSort {
+  by: SortBy
+  direction: "asc" | "desc"
+}
 
 type HistoryAction =
   | { type: "addTask"; task: Task }
@@ -12,11 +19,11 @@ type HistoryAction =
   | { type: "editTask"; taskId: number; previousState: Task }
   | { type: "toggleCompletion"; taskId: number; previousState: boolean }
   | { type: "bulkToggleCompletion"; taskIds: number[]; previousState: Record<number, boolean> }
-  | { type: "reorderTasks"; previousTasks: Task[] }
+  | { type: "reorderTasks"; previousTasks: Task[]; newTasks: Task[] }
 
-type ActiveTimer = {
+interface ActiveTimer {
   taskId: number | null
-  startTime: Date | null
+  startTime: number | null
   elapsed: number
 }
 
@@ -42,6 +49,7 @@ type AppState = {
     actions: HistoryAction[]
     position: number
   }
+  sortDirection: "asc" | "desc"
 
   // Auth actions
   setCurrentUser: (user: User | null) => void
@@ -114,7 +122,7 @@ export const useAppStore = create<AppState>()(
         dateRange: { start: null, end: null },
       },
       sort: {
-        by: "none",
+        by: "created",
         direction: "asc",
       },
       view: "list",
@@ -133,6 +141,7 @@ export const useAppStore = create<AppState>()(
         actions: [],
         position: -1,
       },
+      sortDirection: "asc",
 
       // Auth actions
       setCurrentUser: (user) => set({ currentUser: user }),
@@ -153,7 +162,10 @@ export const useAppStore = create<AppState>()(
 
         // Add to history
         const newHistory = {
-          actions: [...history.actions.slice(0, history.position + 1), { type: "addTask", task: newTask }],
+          actions: [
+            ...history.actions.slice(0, history.position + 1),
+            { type: "addTask" as const, task: newTask }
+          ],
           position: history.position + 1,
         }
 
@@ -165,18 +177,20 @@ export const useAppStore = create<AppState>()(
 
       deleteTask: (taskId) => {
         const { tasks, history } = get()
-        const taskToDelete = tasks.find((t) => t.id === taskId)
+        const task = tasks.find((t) => t.id === taskId)
+        if (!task) return
 
-        if (!taskToDelete) return
-
-        // Add to history
+        const newTasks = tasks.filter((t) => t.id !== taskId)
         const newHistory = {
-          actions: [...history.actions.slice(0, history.position + 1), { type: "deleteTask", task: taskToDelete }],
+          actions: [
+            ...history.actions.slice(0, history.position + 1),
+            { type: "deleteTask" as const, task }
+          ],
           position: history.position + 1,
         }
 
         set({
-          tasks: tasks.filter((t) => t.id !== taskId),
+          tasks: newTasks,
           history: newHistory,
         })
       },
@@ -184,154 +198,136 @@ export const useAppStore = create<AppState>()(
       deleteMultipleTasks: (taskIds) => {
         const { tasks, history } = get()
         const tasksToDelete = tasks.filter((t) => taskIds.includes(t.id))
-
-        // Add to history
+        const newTasks = tasks.filter((t) => !taskIds.includes(t.id))
         const newHistory = {
           actions: [
             ...history.actions.slice(0, history.position + 1),
-            { type: "deleteMultipleTasks", tasks: tasksToDelete },
+            { type: "deleteMultipleTasks" as const, tasks: tasksToDelete }
           ],
           position: history.position + 1,
         }
-
-        set({
-          tasks: tasks.filter((t) => !taskIds.includes(t.id)),
-          selectedTasks: [],
-          history: newHistory,
-        })
-      },
-
-      editTask: (taskId, updatedTask) => {
-        const { tasks, history } = get()
-        const taskIndex = tasks.findIndex((t) => t.id === taskId)
-
-        if (taskIndex === -1) return
-
-        const previousState = tasks[taskIndex]
-
-        // Add to history
-        const newHistory = {
-          actions: [
-            ...history.actions.slice(0, history.position + 1),
-            { type: "editTask", taskId, previousState: { ...previousState } },
-          ],
-          position: history.position + 1,
-        }
-
-        const newTasks = [...tasks]
-        newTasks[taskIndex] = { ...newTasks[taskIndex], ...updatedTask }
 
         set({
           tasks: newTasks,
           history: newHistory,
         })
+      },
+
+      editTask: (taskId, updates) => {
+        const { tasks, history } = get()
+        const taskIndex = tasks.findIndex((t) => t.id === taskId)
+        if (taskIndex === -1) return
+
+        const previousTask = { ...tasks[taskIndex] }
+        const updatedTask = { ...tasks[taskIndex], ...updates }
+
+        const newTasks = [...tasks]
+        newTasks[taskIndex] = updatedTask
+
+        // Add to history
+        const newHistory = {
+          actions: [
+            ...history.actions.slice(0, history.position + 1),
+            { type: "editTask" as const, taskId, previousState: previousTask }
+          ],
+          position: history.position + 1,
+        }
+
+        set({ tasks: newTasks, history: newHistory })
       },
 
       toggleTaskCompletion: (taskId) => {
         const { tasks, history } = get()
         const taskIndex = tasks.findIndex((t) => t.id === taskId)
-
         if (taskIndex === -1) return
 
         const previousState = tasks[taskIndex].completed
+        const newTasks = tasks.map((task) =>
+          task.id === taskId ? { ...task, completed: !task.completed } : task
+        )
 
         // Add to history
         const newHistory = {
           actions: [
             ...history.actions.slice(0, history.position + 1),
-            { type: "toggleCompletion", taskId, previousState },
+            { type: "toggleCompletion" as const, taskId, previousState }
           ],
           position: history.position + 1,
         }
 
-        const newTasks = [...tasks]
-        newTasks[taskIndex] = {
-          ...newTasks[taskIndex],
-          completed: !newTasks[taskIndex].completed,
-        }
-
-        set({
-          tasks: newTasks,
-          history: newHistory,
-        })
+        set({ tasks: newTasks, history: newHistory })
       },
 
       toggleMultipleTasksCompletion: (taskIds) => {
         const { tasks, history } = get()
-
-        // Store previous states
-        const previousState: Record<number, boolean> = {}
-        taskIds.forEach((id) => {
+        const previousState = taskIds.reduce((acc, id) => {
           const task = tasks.find((t) => t.id === id)
           if (task) {
-            previousState[id] = task.completed
+            acc[id] = task.completed
           }
-        })
+          return acc
+        }, {} as Record<number, boolean>)
+
+        const newTasks = tasks.map((task) =>
+          taskIds.includes(task.id)
+            ? { ...task, completed: !task.completed }
+            : task
+        )
 
         // Add to history
         const newHistory = {
           actions: [
             ...history.actions.slice(0, history.position + 1),
-            { type: "bulkToggleCompletion", taskIds, previousState },
+            { type: "bulkToggleCompletion" as const, taskIds, previousState }
           ],
           position: history.position + 1,
         }
 
-        const newTasks = tasks.map((task) => (taskIds.includes(task.id) ? { ...task, completed: true } : task))
-
-        set({
-          tasks: newTasks,
-          selectedTasks: [],
-          history: newHistory,
-        })
+        set({ tasks: newTasks, history: newHistory })
       },
 
-      // Improved reorderTasks function to handle edge cases
+      // Improved reorderTasks function to handle drag and drop perfectly
       reorderTasks: (sourceId, targetId) => {
         const { tasks, history } = get()
 
         // Store the original tasks for history
         const originalTasks = [...tasks]
 
-        // Find source and target tasks
-        const sourceTask = tasks.find((t) => t.id === sourceId)
-        const targetTask = tasks.find((t) => t.id === targetId)
-
-        // If either task is not found, do nothing
-        if (!sourceTask || !targetTask) return
-
         // Find source and target indices
         const sourceIndex = tasks.findIndex((t) => t.id === sourceId)
         const targetIndex = tasks.findIndex((t) => t.id === targetId)
 
-        // Create a new array of tasks
+        // If either task is not found, do nothing
+        if (sourceIndex === -1 || targetIndex === -1) return
+
+        // Create a new array and remove the source task
         const newTasks = [...tasks]
+        const [movedTask] = newTasks.splice(sourceIndex, 1)
 
-        // Remove the source task
-        newTasks.splice(sourceIndex, 1)
+        // Insert at the target position
+        newTasks.splice(targetIndex, 0, movedTask)
 
-        // Find the new target index (it may have changed after removing the source)
-        const newTargetIndex = newTasks.findIndex((t) => t.id === targetId)
-
-        // Insert the source task at the appropriate position
-        // If the target was before the source, insert at the target index
-        // If the target was after the source, insert after the target index
-        const insertIndex = sourceIndex < targetIndex ? newTargetIndex : newTargetIndex + 1
-        newTasks.splice(insertIndex, 0, sourceTask)
-
-        // Add to history
+        // Add to history with both previous and new state
         const newHistory = {
           actions: [
             ...history.actions.slice(0, history.position + 1),
-            { type: "reorderTasks", previousTasks: originalTasks },
+            { 
+              type: "reorderTasks" as const, 
+              previousTasks: originalTasks,
+              newTasks: newTasks
+            },
           ],
           position: history.position + 1,
         }
 
-        // Update the state
+        // Update the state with the new order and reset sort
         set({
           tasks: newTasks,
           history: newHistory,
+          sort: {
+            by: "created",
+            direction: "asc"
+          }
         })
       },
 
@@ -350,65 +346,74 @@ export const useAppStore = create<AppState>()(
       clearTaskSelection: () => set({ selectedTasks: [] }),
 
       // Timer actions
-      startTaskTimer: (taskId: number) => {
-        set((state) => ({
+      startTaskTimer: (taskId) => {
+        const { tasks } = get()
+        const task = tasks.find((t) => t.id === taskId)
+        if (!task) return
+
+        set({
           activeTimer: {
             taskId,
-            startTime: new Date(),
-            elapsed: state.activeTimer.taskId === taskId ? state.activeTimer.elapsed : 0,
+            startTime: Date.now(),
+            elapsed: 0
           },
-        }))
+        })
       },
 
       pauseTaskTimer: () => {
-        set((state) => {
-          if (!state.activeTimer.taskId || !state.activeTimer.startTime) return state
+        const { activeTimer } = get()
+        if (activeTimer.taskId === null || activeTimer.startTime === null) return
 
-          const now = new Date()
-          const elapsed = state.activeTimer.elapsed + (now.getTime() - state.activeTimer.startTime.getTime())
+        const elapsedTime = Math.floor((Date.now() - activeTimer.startTime) / 1000)
+        const newTasks = get().tasks.map((task) =>
+          task.id === activeTimer.taskId
+            ? { ...task, timer: task.timer + elapsedTime }
+            : task
+        )
 
-          return {
-            activeTimer: {
-              ...state.activeTimer,
-              startTime: null,
-              elapsed,
-            },
-            tasks: state.tasks.map((task) =>
-              task.id === state.activeTimer.taskId
-                ? { ...task, timer: (task.timer || 0) + (now.getTime() - state.activeTimer.startTime.getTime()) }
-                : task,
-            ),
-          }
+        set({
+          tasks: newTasks,
+          activeTimer: {
+            taskId: null,
+            startTime: null,
+            elapsed: 0
+          },
         })
       },
 
       resumeTaskTimer: () => {
-        set((state) => ({
+        const { activeTimer } = get()
+        if (activeTimer.taskId === null || activeTimer.startTime === null) return
+
+        set({
           activeTimer: {
-            ...state.activeTimer,
-            startTime: new Date(),
+            ...activeTimer,
+            startTime: Date.now(),
           },
-        }))
+        })
       },
 
       stopTaskTimer: () => {
-        set((state) => {
-          if (!state.activeTimer.taskId) return state
+        const { activeTimer, tasks } = get()
+        if (activeTimer.taskId === null || activeTimer.startTime === null) return
 
-          let additionalTime = 0
-          if (state.activeTimer.startTime) {
-            const now = new Date()
-            additionalTime = now.getTime() - state.activeTimer.startTime.getTime()
-          }
+        const task = tasks.find((t) => t.id === activeTimer.taskId)
+        if (!task) return
 
-          const totalElapsed = state.activeTimer.elapsed + additionalTime
+        const elapsedTime = Math.floor((Date.now() - activeTimer.startTime) / 1000)
+        const newTasks = tasks.map((t) =>
+          t.id === activeTimer.taskId
+            ? { ...t, timer: t.timer + elapsedTime }
+            : t
+        )
 
-          return {
-            activeTimer: { taskId: null, startTime: null, elapsed: 0 },
-            tasks: state.tasks.map((task) =>
-              task.id === state.activeTimer.taskId ? { ...task, timer: (task.timer || 0) + totalElapsed } : task,
-            ),
-          }
+        set({
+          tasks: newTasks,
+          activeTimer: {
+            taskId: null,
+            startTime: null,
+            elapsed: 0
+          },
         })
       },
 
@@ -563,6 +568,7 @@ export const useAppStore = create<AppState>()(
             break
 
           case "reorderTasks":
+            // Use the stored previous state for undo
             newTasks = [...action.previousTasks]
             break
         }
@@ -631,14 +637,15 @@ export const useAppStore = create<AppState>()(
               if (taskIndex !== -1) {
                 newTasks[taskIndex] = {
                   ...newTasks[taskIndex],
-                  completed: true,
+                  completed: !action.previousState[id],
                 }
               }
             })
             break
 
           case "reorderTasks":
-            // We can't easily redo a reorder without storing the new order
+            // Use the stored new state for redo
+            newTasks = [...action.newTasks]
             break
         }
 
@@ -693,6 +700,7 @@ export const useAppStore = create<AppState>()(
         activeTimer: state.activeTimer,
         workTimer: state.workTimer,
         history: state.history,
+        sortDirection: state.sortDirection,
       }),
       storage: {
         getItem: (name) => {

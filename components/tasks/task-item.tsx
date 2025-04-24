@@ -85,8 +85,8 @@ export function TaskItem({ task }: TaskItemProps) {
         let elapsed = task.timer || 0
 
         if (activeTimer.startTime) {
-          const now = new Date()
-          elapsed += activeTimer.elapsed + (now.getTime() - activeTimer.startTime.getTime())
+          const now = Date.now()
+          elapsed += activeTimer.elapsed + (now - activeTimer.startTime)
         } else {
           elapsed += activeTimer.elapsed
         }
@@ -161,13 +161,37 @@ export function TaskItem({ task }: TaskItemProps) {
     if (!(e.target as HTMLElement).closest("button") && !(e.target as HTMLElement).closest('[role="switch"]')) {
       toggleTaskSelection(task.id)
 
-      // Show toast notification with due date
+      // Show toast notification with task details
       toast({
-        title: task.title,
-        description: `Due on ${formatDate(task.dueDate)}`,
+        title: "Task Selected",
+        description: `"${task.title}" has been selected`,
         duration: 5000,
       })
     }
+  }
+
+  const handleToggleCompletion = () => {
+    toggleTaskCompletion(task.id)
+    
+    // Show completion status notification
+    toast({
+      title: task.completed ? "Task Marked as Incomplete" : "Task Completed",
+      description: `"${task.title}" has been ${task.completed ? "marked as incomplete" : "marked as complete"}`,
+      duration: 5000,
+    })
+  }
+
+  const handleDelete = () => {
+    deleteTask(task.id)
+    setDeleteDialogOpen(false)
+
+    // Show delete notification
+    toast({
+      title: "Task Deleted",
+      description: `"${task.title}" has been deleted`,
+      duration: 5000,
+      variant: "destructive",
+    })
   }
 
   // Inside the component
@@ -194,7 +218,7 @@ export function TaskItem({ task }: TaskItemProps) {
                 <TooltipTrigger asChild>
                   <Switch
                     checked={task.completed}
-                    onCheckedChange={() => toggleTaskCompletion(task.id)}
+                    onCheckedChange={handleToggleCompletion}
                     className={`${task.completed ? "data-[state=checked]:bg-green-500" : ""} bg-black dark:bg-white`}
                   />
                 </TooltipTrigger>
@@ -368,7 +392,7 @@ export function TaskItem({ task }: TaskItemProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => deleteTask(task.id)}>
+            <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={handleDelete}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

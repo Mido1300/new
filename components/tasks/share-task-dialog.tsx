@@ -52,20 +52,50 @@ export function ShareTaskDialog({ open, onOpenChange, taskId }: ShareTaskDialogP
   const handleShare = () => {
     if (!task) return
 
-    // In a real app, we would send a request to the server
-    // For this demo, we'll just show a success message
+    // Create detailed sharing message
+    const userNames = selectedUsers.map(userId => {
+      const user = users.find(u => u.id.toString() === userId)
+      return user?.name || 'Unknown User'
+    })
+    
+    const allRecipients = [...userNames, ...emails]
+    const recipientCount = allRecipients.length
+    
+    // Create detailed notification message
+    let notificationMessage = `"${task.title}" has been shared with:`
+    
+    if (userNames.length > 0) {
+      notificationMessage += `\n• Team members: ${userNames.join(', ')}`
+    }
+    
+    if (emails.length > 0) {
+      notificationMessage += `\n• External users: ${emails.join(', ')}`
+    }
+    
+    notificationMessage += `\n\nPermission level: ${permission === 'view' ? 'View Only' : 'Can Edit'}`
 
     // Add notification
     addNotification({
       title: "Task Shared",
-      message: `"${task.title}" shared with ${selectedUsers.length + emails.length} recipients`,
+      message: notificationMessage,
     })
 
-    // Show toast
-    toast({
-      title: "Task Shared",
-      description: `Task "${task.title}" has been shared successfully.`,
-    })
+    // Show toast with different messages based on recipient count
+    if (recipientCount === 1) {
+      toast({
+        title: "Task Shared",
+        description: `Task "${task.title}" has been shared with ${allRecipients[0]}`,
+        duration: 5000,
+        className: "fixed bottom-4 right-4",
+      })
+    } else {
+      toast({
+        title: "Task Shared",
+        description: `Task "${task.title}" has been shared with ${recipientCount} recipients`,
+        duration: 5000,
+        className: "fixed bottom-4 right-4",
+      })
+    }
 
     // Reset form
     setSelectedUsers([])
